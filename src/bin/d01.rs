@@ -5,8 +5,8 @@ const BIN: &str = env!("CARGO_BIN_NAME");
 
 #[derive(Debug)]
 enum Rotation {
-    Left(u32),
-    Right(u32)
+    Left(i32),
+    Right(i32)
 }
 
 #[derive(Debug)]
@@ -30,39 +30,30 @@ fn main() {
     let now = Instant::now();
     let input: Vec<Rotation> = args.input.lines().map(|l| l.parse().unwrap()).collect();
 
-    let mut dial_pos = 50i32;
-    let mut nr_zero = 0;
-
     let solution: i32 = if !args.second {
-        for i in input {
-            match i {
-                Rotation::Left(x) => dial_pos -= x as i32,
-                Rotation::Right(x) => dial_pos += x as i32
-            }
-            dial_pos = dial_pos.rem_euclid(100);
-            if dial_pos == 0 { nr_zero += 1; }
-        }
-        nr_zero
-    } else {
-        for i in input {
-            match i {
+        input.iter().fold((0, 50), |(zeros, pos), r| {
+            match r {
                 Rotation::Left(x) => {
-                    if dial_pos == 0 {
-                        nr_zero -= 1;
-                    }
-                    dial_pos -= x as i32;
+                    if (pos - x) % 100 == 0 { (zeros + 1, (pos - x).rem_euclid(100)) }
+                    else { (zeros, (pos - x).rem_euclid(100)) }
                 }
-                Rotation::Right(x) => dial_pos += x as i32
+                Rotation::Right(x) => {
+                    if (pos + x) % 100 == 0 { (zeros + 1, (pos + x).rem_euclid(100)) }
+                    else { (zeros, (pos + x).rem_euclid(100)) }
+                },
             }
-            if dial_pos >= 100 { 
-                nr_zero += dial_pos / 100; 
-            } 
-            if dial_pos <= 0 {
-                nr_zero += -dial_pos / 100 + 1;
+        }).0
+    } else {
+        input.iter().fold((0i32, 50), |(zeros, pos), r| {
+            match r {
+                Rotation::Left(x) => {
+                    if pos == 0 { (zeros - (pos - x) / 100, (pos - x).rem_euclid(100)) }
+                    else if (pos - x) <= 0 { (zeros + 1 - (pos - x) / 100, (pos - x).rem_euclid(100)) }
+                    else { (zeros, pos - x) }
+                }
+                Rotation::Right(x) => (zeros + (pos + x) / 100, (pos + x).rem_euclid(100))
             }
-            dial_pos = dial_pos.rem_euclid(100);
-        }
-        nr_zero
+        }).0
     };
 
     result(solution, now.elapsed(), &args);
